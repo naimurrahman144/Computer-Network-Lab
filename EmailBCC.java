@@ -4,71 +4,88 @@ import java.util.Base64;
 
 public class EmailBCC {
 
-    public static void main(String[] args) throws Exception {
+    private static DataOutputStream dos;
+    private static BufferedReader br;
 
-        String user = "your_email@gmail.com";
-        String pass = "your_app_password";
+    public static void main(String[] args) throws Exception{
+        String fromEmail = "your_email@gmail.com";
+        String pass = "App password";
+        String toEmail = "to@gmail.com";
+        String bccEmail = "bcc@gmail.com";
 
-        String username = Base64.getEncoder().encodeToString(user.getBytes());
+        String username = Base64.getEncoder().encodeToString(fromEmail.getBytes());
         String password = Base64.getEncoder().encodeToString(pass.getBytes());
 
         SSLSocket socket = (SSLSocket) SSLSocketFactory
-                .getDefault()
-                .createSocket("smtp.gmail.com", 465);
+            .getDefault()
+            .createSocket("smtp.gmail.com",465);
 
-        BufferedReader br = new BufferedReader(
-                new InputStreamReader(socket.getInputStream()));
-        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+        dos = new DataOutputStream(socket.getOutputStream());
+        br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        // Server greeting
-        br.readLine();
+        readLine();
 
-        send(dos, "EHLO localhost\r\n");
+        send("EHLO smpt.gmail.com\r\n");
+        readEHLO();
 
-        send(dos, "AUTH LOGIN\r\n");
-        br.readLine();
+        send("AUTH LOGIN\r\n");
+        readLine();
 
-        send(dos, username + "\r\n");
-        br.readLine();
+        send(username + "\r\n");
+        readLine();
 
-        send(dos, password + "\r\n");
-        br.readLine();
+        send(password + "\r\n");
+        readLine();
 
-        // Sender
-        send(dos, "MAIL FROM:<" + user + ">\r\n");
+        send("MAIL FROM:<" + fromEmail + ">\r\n");
+        readLine();
 
-        // TO (visible)
-        send(dos, "RCPT TO:<to@gmail.com>\r\n");
+        send("RCPT TO:<" + toEmail + ">\r\n");
+        readLine();
 
-        // BCC (hidden)
-        send(dos, "RCPT TO:<bcc@gmail.com>\r\n");
+        send("RCPT TO:<" + bccEmail + ">\r\n");
+        readLine();
 
-        send(dos, "DATA\r\n");
-        br.readLine();
+        send("DATA\r\n");
+        readLine();
 
-        // Headers (NO BCC here ❌)
-        send(dos, "From: " + user + "\r\n");
-        send(dos, "To: to@gmail.com\r\n");
-        send(dos, "Subject: BCC Email Test\r\n");
-        send(dos, "MIME-Version: 1.0\r\n");
-        send(dos, "Content-Type: text/plain\r\n");
-        send(dos, "\r\n");
+        send("From: " + fromEmail + "\r\n");
+        send("To: " + toEmail + "\r\n");
+        send("Subject: BCC test Email\r\n");
+        send("\r\n");
 
-        // Body
-        send(dos, "Hello,\r\nThis is a proper BCC email test.\r\n");
+        send("Hello,\r\nThis is a BCC Email test\r\n");
 
-        // End of message
-        send(dos, ".\r\n");
-        br.readLine();
+        send(".\r\n");
+        readLine();
 
-        send(dos, "QUIT\r\n");
+        send("QUIT\r\n");
+        readLine();
 
         socket.close();
+
+    }
+    private static void send(String s) throws Exception{
+        dos.writeBytes(s);
+        dos.flush();
+        System.out.println("CLIENT: "+s);
+        Thread.sleep(200);
     }
 
-    private static void send(DataOutputStream dos, String msg) throws Exception {
-        dos.writeBytes(msg);
-        dos.flush();
-        System.out.println("CLIENT: " + msg);
+    private static void readLine() throws Exception{
+        String line = br.readLine();
+        if(line == null)
+            throw new RuntimeException("Server close connection(Broken pipe root cause)");
+
+        System.out.println("SERVER: "+line);
+    }
+
+    private static void readEHLO() throws Exception{
+        String line;
+        while((line = br.readLine()) != null){
+            System.out.println("SERVER: "+line);
+            if(line.length() > 3 && line.charAt(3)==' ')
+                break;
+        }
     }
 }
