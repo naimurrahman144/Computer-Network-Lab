@@ -1,0 +1,20 @@
+enable
+configure terminal
+
+interface gig0/0
+ip address 192.168.4.1 255.255.255.0
+no shutdown
+exit
+
+interface gig0/1
+ip address 10.0.34.2 255.255.255.252
+no shutdown
+exit
+
+interface gig0/2
+ip address 10.0.41.1 255.255.255.252
+no shutdown
+exit
+
+ip route 192.168.1.0 255.255.255.0 10.0.34.1
+exit
